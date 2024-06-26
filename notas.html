@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        .sidebar h1 {
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #3F69E0;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            transition: margin-left 0.3s ease;
+            overflow-y: auto;
+        }
+        .note-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .note-circle {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 20px;
+        }
+        .note-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .note-title {
+            font-size: 18px;
+            color: black;
+        }
+        .note-date {
+            font-size: 14px;
+            color: gray;
+            align-self: flex-end;
+        }
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1;
+        }
+        .add-icon {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .reset-button {
+            position: absolute;
+            bottom: 70px;
+            right: 10px;
+            background-color: #3F69E0;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+        /* Estilos do modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            margin: 0;
+        }
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-body label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .modal-body input[type="text"],
+        .modal-body input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        .modal-body input[type="radio"] {
+            margin-right: 5px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-footer button {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: #3F69E0;
+            color: white;
+        }
+        .modal-footer .cancel-btn {
+            background-color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="sidebar">
+        <h1>Notas</h1>
+        <a href="inicial.html">Hoje</a>
+        <a href="calendario.html">Calendário</a>
+        <a href="horario.html">Horário</a>
+        <a href="notas.html" class="active">Notas</a>
+        <a href="cadeiras.html">Cadeiras</a>
+        <a href="professores.html">Professores</a>
+        <a href="definicoes.html">Definições</a>
+        <a href="definicoes_admin.html">Definições Admin</a>
+         <a href="bemvindo.html">Sair</a>
+    </div>
+
+    <div class="content">
+        <div class="note-container">
+            <div class="note-circle" style="background-color: #6BCB91;">13</div>
+            <div class="note-content">
+                <div class="note-title">Algoritmia</div>
+                <div class="note-date">09 Maio 2023</div>
+            </div>
+        </div>
+        <div class="note-container">
+            <div class="note-circle" style="background-color: #6BCB91;">17</div>
+            <div class="note-content">
+                <div class="note-title">Javascript</div>
+                <div class="note-date">21 Julho 2023</div>
+            </div>
+        </div>
+        <div class="note-container">
+            <div class="note-circle" style="background-color: #FF3C6A;">7</div>
+            <div class="note-content">
+                <div class="note-title">Marketing</div>
+                <div class="note-date">14 Setembro 2023</div>
+            </div>
+        </div>
+        <div class="note-container">
+            <div class="note-circle" style="background-color: #6BCB91;">17</div>
+            <div class="note-content">
+                <div class="note-title">Design de Aplicações</div>
+                <div class="note-date">16 Janeiro 2024</div>
+            </div>
+        </div>
+        <div class="note-container">
+            <div class="note-circle" style="background-color: #FF3C6A;">5</div>
+            <div class="note-content">
+                <div class="note-title">HTML</div>
+                <div class="note-date">3 Março 2024</div>
+            </div>
+        </div>
+    </div>
+    <div class="add-icon" onclick="openModal()">+</div>
+    <button class="reset-button" onclick="resetNotes()">Resetar Notas</button>
+
+    <!-- Modal para adicionar notas -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Nota</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <br><br>
+                <label for="noteTitle"> <img class="pen-icon" src="img/pen.png" alt="Foto"> Nome da Matéria:</label>
+                <input type="text" id="noteTitle" required>
+
+                <label for="noteDate"> <img  class="calendar-icon" src="img/calendar.png" alt="Foto"> Data da Nota (Ex: 9 Maio 2024):</label>
+                <input type="text" id="noteDate" required>
+
+                <label for="noteGrade">Nota (0 a 20):</label>
+                <input type="number" id="noteGrade" min="0" max="20" required>
+
+                <label>Escolha a cor:</label>
+                <label><input type="radio" name="noteColor" value="#6BCB91" checked> Verde</label>
+                <label><input type="radio" name="noteColor" value="#FF3C6A"> Vermelho</label>
+            </div>
+            <div class="modal-footer">
+                <button onclick="addNote()">Adicionar</button>
+                <button class="cancel-btn" onclick="closeModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="basededados.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+            authDomain: "acadify-5ab24.firebaseapp.com",
+            projectId: "acadify-5ab24",
+            storageBucket: "acadify-5ab24.appspot.com",
+            messagingSenderId: "235339619489",
+            appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+            measurementId: "G-X2SZQE18KK"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Função para alternar o menu lateral
+        function toggleMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        window.addEventListener("load", (event) => {
+            const sidebar = document.querySelector('.sidebar');
+            if (window.innerWidth < 780) {
+                sidebar.classList.add('collapsed');
+            }
+        });
+
+        // Função para abrir o modal
+        function openModal() {
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        // Função para fechar o modal
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Função para adicionar uma nota
+        function addNote() {
+            const noteTitle = document.getElementById('noteTitle').value;
+            const noteDate = document.getElementById('noteDate').value;
+            const noteGrade = parseFloat(document.getElementById('noteGrade').value);
+            const noteColor = document.querySelector('input[name="noteColor"]:checked').value;
+
+            if (isNaN(noteGrade) || noteGrade < 0 || noteGrade > 20) {
+                alert("Nota inválida! Digite um valor entre 0 e 20.");
+                return;
+            }
+
+            db.collection("notas").add({
+                aluno: "userId1", // Substitua pelo ID do aluno correto
+                data: noteDate,
+                materia: noteTitle,
+                nota: noteGrade,
+                cor: noteColor
+            })
+            .then((docRef) => {
+                console.log("Nota adicionada com ID: ", docRef.id);
+
+                // Criar novo elemento da nota
+                const noteContainer = document.createElement('div');
+                noteContainer.classList.add('note-container');
+                const noteCircle = document.createElement('div');
+                noteCircle.classList.add('note-circle');
+                noteCircle.style.backgroundColor = noteColor;
+                const noteContent = document.createElement('div');
+                noteContent.classList.add('note-content');
+                const titleDiv = document.createElement('div');
+                titleDiv.classList.add('note-title');
+                const dateDiv = document.createElement('div');
+                dateDiv.classList.add('note-date');
+
+                // Definir o conteúdo da nota
+                titleDiv.innerText = noteTitle;
+                dateDiv.innerText = noteDate;
+                noteContent.appendChild(titleDiv);
+                noteContent.appendChild(dateDiv);
+                noteContainer.appendChild(noteCircle);
+                noteContainer.appendChild(noteContent);
+
+                // Adicionar a nova nota ao contêiner de notas
+                const contentDiv = document.querySelector('.content');
+                contentDiv.appendChild(noteContainer);
+
+                // Definir a nota no círculo
+                noteCircle.innerText = noteGrade;
+
+                // Fechar o modal e limpar os campos de entrada
+                closeModal();
+                document.getElementById('noteTitle').value = '';
+                document.getElementById('noteDate').value = '';
+                document.getElementById('noteGrade').value = '';
+            })
+            .catch((error) => {
+                console.error("Erro ao adicionar nota: ", error);
+            });
+        }
+
+        // Função para resetar as notas
+        function resetNotes() {
+            const content = document.querySelector('.content');
+            content.innerHTML = ''; // Remove todos os elementos dentro de .content
+        }
+
+        // Registro do Service Worker (se necessário)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }).catch(error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

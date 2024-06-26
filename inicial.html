@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acadify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        .sidebar h1 {
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #3F69E0;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .task-container, .blue-container {
+            background-color: rgba(63, 105, 224, 0.3);
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-width: 500px;
+            margin: 20px auto;
+            overflow: auto;
+        }
+        .task-list {
+            background-color: #fefefe;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        .task-item {
+            background-color: #fff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1;
+        }
+        .add-icon {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .reset-button {
+            position: absolute;
+            bottom: 70px;
+            right: 10px;
+            background-color: #3F69E0;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+
+        .notification {
+            width: 36px;
+            height: 36px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .calendar-icon {
+            width: 36px;
+            height: 36px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 100px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        .delete-button {
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-top: 10px;
+        }
+        .delete-button:hover {
+            background-color: #3F69E0;
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="sidebar">
+        <h1>Inicial</h1>
+        <a href="inicial.html" class="active">Hoje</a>
+        <a href="calendario.html">Calendário</a>
+        <a href="horario.html">Horário</a>
+        <a href="notas.html">Notas</a>
+        <a href="cadeiras.html">Cadeiras</a>
+        <a href="professores.html">Professores</a>
+        <a href="definicoes.html">Definições</a>
+        <a href="definicoes_admin.html">Definições Admin</a>
+        <a href="bemvindo.html">Sair</a>
+    </div>
+    <div class="content">
+        <h2>Bem-vindo ao Acadify</h2>
+        <div class="task-container">
+            <div class="task-list">
+                <h2 style="color: black"> <img class="notification" src="img/notificaçao.png" alt="Foto">Eventos</h2>
+                <div class="task-list" id="eventos-container">
+                    <!-- Conteúdo dos eventos será adicionado dinamicamente aqui -->
+                </div>
+            </div>
+        </div>
+        <div class="blue-container">
+            <div class="task-list">
+                <h2 style="color:black;"> <img class="calendar-icon" src="img/calendar.png" alt="Foto">Aulas</h2>
+                <div class="task-list" id="aulas-container">
+                    <!-- Conteúdo das aulas será adicionado dinamicamente aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Adicionar Novo Item</h2>
+            <form id="addForm">
+                <label for="type">Tipo:</label>
+                <select id="type" name="type">
+                    <option value="evento">Evento</option>
+                    <option value="aula">Aula</option>
+                </select>
+                <label for="title">Título:</label>
+                <input type="text" id="title" name="title" required>
+                <label for="time">Horário:</label>
+                <input type="text" id="time" name="time" required>
+                <button type="submit">Adicionar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="add-icon" id="addButton" onclick="openModal()">+</div>
+    <button class="reset-button" onclick="resetList()">Resetar Lista</button>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="basededados.js" type="module"></script>
+    <script>
+     const firebaseConfig = {
+        apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+        authDomain: "acadify-5ab24.firebaseapp.com",
+        projectId: "acadify-5ab24",
+        storageBucket: "acadify-5ab24.appspot.com",
+        messagingSenderId: "235339619489",
+        appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+        measurementId: "G-X2SZQE18KK"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function toggleMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        window.addEventListener("load", (event) => {
+            const sidebar = document.querySelector('.sidebar');
+
+            if (window.innerWidth < 780) {
+                sidebar.classList.add('collapsed');
+            }
+        });
+
+        // Modal
+        const modal = document.getElementById("myModal");
+
+        function openModal() {
+            modal.style.display = "block";
+        }
+
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        // Formulário de adição
+        const form = document.getElementById("addForm");
+
+        form.onsubmit = function(event) {
+            event.preventDefault();
+
+            const type = document.getElementById("type").value;
+            const title = document.getElementById("title").value;
+            const time = document.getElementById("time").value;
+
+            // Adicionar ao Firestore
+            db.collection("eventos").add({
+                tipo: type,
+                titulo: title,
+                horario: time
+            })
+            .then(function(docRef) {
+                console.log("Evento adicionado com ID: ", docRef.id);
+
+                // Atualizar interface com o evento adicionado
+                const itemHTML = `
+                    <div class="task-item">
+                        <p><strong>${title}</strong></p>
+                        <p>${time}</p>
+                        <button class="delete-button" onclick="deleteItem(this)">Excluir</button>
+                    </div>
+                `;
+
+                let container;
+                if (type === "evento") {
+                    container = document.getElementById("eventos-container");
+                } else if (type === "aula") {
+                    container = document.getElementById("aulas-container");
+                }
+
+                container.insertAdjacentHTML('beforeend', itemHTML);
+
+                // Adicionar evento de clique ao botão de exclusão
+                const deleteButtons = container.querySelectorAll('.delete-button');
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        this.parentElement.remove();
+                    });
+                });
+
+                // Rolar para o fim do container
+                container.scrollTop = container.scrollHeight;
+
+                // Limpar o formulário e fechar o modal
+                form.reset();
+                modal.style.display = "none";
+            })
+            .catch(function(error) {
+                console.error("Erro ao adicionar evento: ", error);
+            });
+        }
+
+        // Função de resetar
+        function resetList() {
+            document.getElementById("eventos-container").innerHTML = "";
+            document.getElementById("aulas-container").innerHTML = "";
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

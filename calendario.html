@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário - Organizador Acadêmico</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar h1 {
+            color: white;
+        }
+
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+
+        .sidebar a:hover {
+            background-color: #3F69E0;
+        }
+
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 250px;
+            width: 100%;
+        }
+
+        .calendar {
+            width: 100%;
+            max-width: 500px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .calendar-header h2 {
+            margin: 0;
+        }
+
+        .calendar-body {
+            padding: 15px;
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .calendar-table th, .calendar-table td {
+            width: 14.28%;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .calendar-table th {
+            background-color: #f4f4f4;
+        }
+
+        .calendar-table td {
+            height: 60px;
+            vertical-align: top;
+        }
+
+        .calendar-table .today {
+            background-color: #3F69E0;
+        }
+
+        .event-container {
+            width: 100%;
+            max-width: 500px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .add-icon {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: white;
+            color: #3F69E0;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .time-icon {
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        .event-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            text-align: left;
+            max-width: 400px;
+            width: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 1000; 
+        }
+
+        .event-form.open {
+            display: block;
+        }
+
+        .event-form label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        .event-form input, .event-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        .event-form button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #3F69E0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .close-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .pen-icon {
+            width: 13px;
+            height: 13px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="sidebar">
+        <h1>Calendário</h1>
+        <a href="inicial.html">Hoje</a>
+        <a href="calendario.html" class="active">Calendário</a>
+        <a href="horario.html">Horário</a>
+        <a href="notas.html">Notas</a>
+        <a href="cadeiras.html">Cadeiras</a>
+        <a href="professores.html">Professores</a>
+        <a href="definicoes.html">Definições</a>
+        <a href="definicoes_admin.html">Definições Admin</a>
+        <a href="bemvindo.html">Sair</a>
+    </div>
+
+    <div class="main-content">
+        <div class="calendar">
+            <div class="calendar-header">
+                <h2>Junho 2024</h2>
+            </div>
+            <div class="calendar-body">
+                <table class="calendar-table">
+                    <thead>
+                        <tr>
+                            <th>Dom</th>
+                            <th>Seg</th>
+                            <th>Ter</th>
+                            <th>Qua</th>
+                            <th>Qui</th>
+                            <th>Sex</th>
+                            <th>Sáb</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>4</td>
+                            <td>5</td>
+                            <td>6</td>
+                            <td>7</td>
+                            <td>8</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>10</td>
+                            <td>11</td>
+                            <td>12</td>
+                            <td>13</td>
+                            <td>14</td>
+                            <td>15</td>
+                        </tr>
+                        <tr>
+                            <td>16</td>
+                            <td>17</td>
+                            <td>18</td>
+                            <td>19</td>
+                            <td>20</td>
+                            <td>21</td>
+                            <td>22</td>
+                        </tr>
+                        <tr>
+                            <td>23</td>
+                            <td>24</td>
+                            <td>25</td>
+                            <td>26</td>
+                            <td>27</td>
+                            <td>28</td>
+                            <td>29</td>
+                        </tr>
+                        <tr>
+                            <td>30</td>
+                            <td>31</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="event-container">
+            <h3>Exame de Álgebra:</h3>
+            <p><img class="time-icon" src="img/clock.png" alt="Ícone de relógio">09:00h às 12:00h</p>
+           
+            <h3>Entrega de Projeto de Marketing:</h3>
+            <p><img class="time-icon" src="img/clock.png" alt="Ícone de relógio">19:00h</p>
+            <div class="add-icon" onclick="toggleEventForm()">+</div>
+        </div>
+
+        <div class="event-form" id="eventForm">
+            <div class="close-icon" onclick="toggleEventForm()">×</div>
+            <h3>Adicionar Novo Evento</h3>
+            <label for="eventTitle"> <img class="pen-icon" src="img/pen.png" alt="Foto">Título:</label>
+            <input type="text" id="eventTitle" required>
+            <label for="eventDate"> <img class="time-icon" src="img/calendar.png" alt="Foto">Data:</label>
+            <input type="date" id="eventDate" required>
+            <label for="eventDescription">Descrição:</label>
+            <textarea id="eventDescription" rows="4" required></textarea>
+            <button onclick="addEvent()">Adicionar Evento</button>
+        </div>
+    </div>
+    <script src="basededados.js"></script>
+    <script>
+        // Configuração do Firebase
+           const firebaseConfig = {
+  apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+  authDomain: "acadify-5ab24.firebaseapp.com",
+  projectId: "acadify-5ab24",
+  storageBucket: "acadify-5ab24.appspot.com",
+  messagingSenderId: "235339619489",
+  appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+  measurementId: "G-X2SZQE18KK"
+};
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const firestore = firebase.firestore();
+
+        // Função para alternar o menu lateral
+        function toggleMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Fecha o formulário de evento ao clicar no botão de fechar
+        function toggleEventForm() {
+            const eventForm = document.getElementById('eventForm');
+            eventForm.classList.toggle('open');
+        }
+
+        function addEvent() {
+    // Captura dos valores dos campos do formulário
+    const eventTitle = document.getElementById('eventTitle').value;
+    const eventDate = document.getElementById('eventDate').value;
+    const eventDescription = document.getElementById('eventDescription').value;
+
+    // Verifica se os campos obrigatórios estão preenchidos
+    if (!eventTitle || !eventDate || !eventDescription) {
+        alert('Por favor, preencha todos os campos!');
+        return;
+    }
+
+    // Cria um objeto com os dados do evento
+    const eventData = {
+        title: eventTitle,
+        date: eventDate,
+        description: eventDescription
+    };
+
+    // Adiciona o evento ao Firestore com um ID específico
+    firestore.collection('calendario').doc().set(eventData)
+        .then(() => {
+            console.log('Evento adicionado com sucesso ao Firestore!');
+            alert('Evento adicionado com sucesso!');
+            clearEventForm(); 
+        })
+        .catch((error) => {
+            console.error('Erro ao adicionar evento: ', error);
+            alert('Ocorreu um erro ao adicionar o evento. Verifique o console para mais detalhes.');
+        });
+}
+
+// Função para limpar o formulário após adicionar um evento
+function clearEventForm() {
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventDate').value = '';
+    document.getElementById('eventDescription').value = '';
+}
+
+        // Registro do Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registrado com escopo: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Falha ao registrar o ServiceWorker: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

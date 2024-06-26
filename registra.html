@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar - Organizador Acadêmico</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Importando Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+      @media only screen and (max-width: 600px) {
+        .container {
+          max-width: 100%;
+          margin: 0;
+          padding-top: 40px;
+          height: 100vh;
+        }
+      }
+ </style>
+</head>
+<body>
+    <div class="container">
+        <img src="img/logo icon.png" alt="Logo" class="logo">
+        <br><br>
+        <form id="register-form">
+            <div class="form-group">
+                <label for="register-email">E-mail:</label>
+                <input type="email" id="register-email" name="register-email" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Senha:</label>
+                <input type="password" id="register-password" name="register-password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm-password">Confirmar Senha:</label>
+                <input type="password" id="confirm-password" name="confirm-password" required>
+            </div>
+            <button type="submit">Registrar</button>
+            <p>Já tem uma conta? <a href="login.html">Entrar</a></p>
+        </form>
+    </div>
+
+    <script>
+          // Configuração do Firebase
+        const firebaseConfig = {
+  apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+  authDomain: "acadify-5ab24.firebaseapp.com",
+  projectId: "acadify-5ab24",
+  storageBucket: "acadify-5ab24.appspot.com",
+  messagingSenderId: "235339619489",
+  appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+  measurementId: "G-X2SZQE18KK"
+};
+
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Inicializa o módulo de autenticação do Firebase
+        const auth = firebase.auth();
+
+        // Inicializa o Firestore
+        const db = firebase.firestore();
+
+        // Manipulador de evento para o formulário de registro
+        document.getElementById("register-form").addEventListener("submit", function(event) {
+            event.preventDefault(); // Evita o envio padrão do formulário
+
+            const email = document.getElementById("register-email").value;
+            const password = document.getElementById("register-password").value;
+            const confirmPassword = document.getElementById("confirm-password").value;
+
+            if (password !== confirmPassword) {
+                alert("As senhas não coincidem. Por favor, tente novamente.");
+                return;
+            }
+
+            // Chama a função para registrar o usuário
+            registrarUsuario(email, password);
+        });
+
+        // Função para registrar o usuário utilizando o Firebase Authentication
+        function registrarUsuario(email, password) {
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Registro bem-sucedido
+                    const user = userCredential.user;
+                    alert(`Usuário registrado com sucesso! ID: ${user.uid}`);
+
+                    // Redirecionar para a página de login após o registro e salvamento
+                    window.location.href = "login.html";
+                })
+                .catch((error) => {
+                    // Erro durante o registro
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(`Erro ao registrar usuário: ${errorMessage}`);
+                });
+        }
+
+        // Registro do Service Worker para PWA (Progressive Web App)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Suporte</title>
+   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+       .sidebar {
+            height: 100vh;
+            width: 250px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        .sidebar h1 {
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #3F69E0;
+        }
+
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(63, 105, 224, 0.7);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3F69E0;
+        }
+
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="sidebar">
+        <h1>Definições</h1>
+        <a href="inicial.html">Hoje</a>
+        <a href="calendario.html">Calendário</a>
+        <a href="horario.html">Horário</a>
+        <a href="notas.html">Notas</a>
+        <a href="cadeiras.html">Cadeiras</a>
+        <a href="professores.html">Professores</a>
+        <a href="definicoes.html" class="active">Definições</a>
+        <a href="definicoes_admin.html">Definições Admin</a>
+        <a href="bemvindo.html">Sair</a>
+    </div>
+
+    <div class="container">
+        <h2>Solicitar Suporte</h2>
+        <form id="support-form">
+            <label for="name">Nome:</label>
+            <input type="text" id="name" name="name" value="">
+
+            <label for="phone">Telefone:</label>
+            <input type="tel" id="phone" name="phone" value="">
+
+            <label for="email">E-mail:</label>
+            <input type="email" id="email" name="email" value="">
+
+            <label for="issue">Descrição do Problema:</label>
+            <textarea id="issue" name="issue"></textarea>
+
+            <button type="submit">Enviar Solicitação</button>
+        </form>
+    </div>
+
+    <script src="basededados.js"></script>
+    <script>
+         // Configuração do Firebase
+        const firebaseConfig = {
+  apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+  authDomain: "acadify-5ab24.firebaseapp.com",
+  projectId: "acadify-5ab24",
+  storageBucket: "acadify-5ab24.appspot.com",
+  messagingSenderId: "235339619489",
+  appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+  measurementId: "G-X2SZQE18KK"
+};
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function abrirTicketSuporte(nome, telefone, email, problema) {
+            try {
+                const docRef = await db.collection("suporte").add({
+                    nome: nome,
+                    telefone: telefone,
+                    email: email,
+                    problema: problema,
+                    data: firebase.firestore.Timestamp.now(),
+                    status: "aberto"
+                });
+                console.log("Novo ticket de suporte aberto com ID: ", docRef.id);
+                return docRef.id;
+            } catch (error) {
+                console.error("Erro ao abrir ticket de suporte: ", error);
+                return null;
+            }
+        }
+
+        document.getElementById('support-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const nome = document.getElementById('name').value;
+            const telefone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            const problema = document.getElementById('issue').value;
+
+            if (!nome || !telefone || !email || !problema) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            try {
+                const ticketId = await abrirTicketSuporte(nome, telefone, email, problema);
+                if (ticketId) {
+                    alert(`Sua solicitação de suporte foi enviada com sucesso! Ticket ID: ${ticketId}`);
+                    document.getElementById('support-form').reset();
+                } else {
+                    alert('Erro ao enviar solicitação de suporte. Verifique o console para mais detalhes.');
+                }
+            } catch (error) {
+                console.error('Erro ao enviar solicitação de suporte:', error);
+                alert('Erro ao enviar solicitação de suporte. Verifique o console para mais detalhes.');
+            }
+        });
+
+        function toggleMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        window.addEventListener("load", (event) => {
+            const sidebar = document.querySelector('.sidebar');
+            if (window.innerWidth < 780) {
+                sidebar.classList.add('collapsed');
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+

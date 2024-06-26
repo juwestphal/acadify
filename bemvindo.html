@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem Vindo - Organizador Acadêmico</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        @media only screen and (max-width: 600px) {
+            .container1 {
+                max-width: 100%;
+                padding: 60px 15px;
+                margin-top: 40px;
+                border: none;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div class="container1">
+        <img src="img/acadify.png" alt="Logo" class="logo1">
+        <br><br>
+        <h2>Bem-vindo!</h2>
+        <br><br>
+        <button class="start-button" onclick="window.location.href='login.html'">Começar</button>
+        <br><br>
+        <a href="entidade.html" class="admin-link" style="color: black;">Sou Administrador</a>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>

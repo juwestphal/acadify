@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professores</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        .sidebar h1 {
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #3F69E0;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            transition: margin-left 0.3s ease;
+            overflow-y: auto;
+        }
+        .professor-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .professor-circle {
+            background-color: rgba(251, 72, 244, 0.3);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 20px;
+        }
+        .professor-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px; /* Espaço entre os elementos para melhor visualização */
+        }
+        .professor-name {
+            font-size: 18px;
+            color: black;
+        }
+        .professor-subject {
+            font-size: 14px;
+            color: gray;
+        }
+        .professor-schedule {
+            font-size: 12px;
+            color: blue; /* Cor diferente para destaque */
+            align-self: flex-start;
+        }
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1;
+        }
+        .add-icon {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(63, 105, 224, 0.3);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .reset-button {
+            position: absolute;
+            bottom: 70px;
+            right: 10px;
+            background-color: #3F69E0;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+
+        .professor-list-title {
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .sidebar .active {
+            background-color: rgba(63, 105, 224, 1);
+        }
+
+        /* Estilos do modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            margin: 0;
+        }
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-body label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .modal-body input[type="text"],
+        .modal-body input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        .modal-body input[type="radio"] {
+            margin-right: 5px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-footer button {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: #3F69E0;
+            color: white;
+        }
+        .modal-footer .cancel-btn {
+            background-color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="sidebar">
+        <h1>Professores</h1>
+        <a href="inicial.html">Hoje</a>
+        <a href="calendario.html">Calendário</a>
+        <a href="horario.html">Horário</a>
+        <a href="notas.html">Notas</a>
+        <a href="cadeiras.html">Cadeiras</a>
+        <a href="professores.html" class="active">Professores</a>
+        <a href="definicoes.html">Definições</a>
+        <a href="definicoes_admin.html">Definições Admin</a>
+        <a href="bemvindo.html">Sair</a>
+    </div>
+
+    <div class="content">
+        <div class="professor-list-title">Lista de Professores</div>
+    </div>
+    <div class="add-icon" onclick="openModal()">+</div>
+    <button class="reset-button" onclick="resetProfessors()">Resetar Professores</button>
+
+    <!-- Modal de Adicionar Professor -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Novo Professor</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div><br><br>
+            <div class="modal-body">
+                <label for="professorName">Nome do Professor:</label>
+                <input type="text" id="professorName" placeholder="Digite o nome do professor" required><br><br>
+                <label for="professorSubject"><img class="pen-icon" src="img/pen.png" alt="Foto"> Matéria que Ensina:</label>
+                <input type="text" id="professorSubject" placeholder="Digite a matéria que o professor ensina" required><br><br>
+                <label for="professorSchedule"><img class="calendar-icon" src="img/clock.png" alt="Foto">Horário de Atendimento:</label>
+                <input type="text" id="professorSchedule" placeholder="Digite o horário de atendimento do professor" required>
+            </div>
+            <div class="modal-footer">
+                <button class="add-btn" onclick="addProfessor()">Adicionar</button>
+                <button class="cancel-btn" onclick="closeModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+     // Configuração do Firebase
+        const firebaseConfig = {
+  apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+  authDomain: "acadify-5ab24.firebaseapp.com",
+  projectId: "acadify-5ab24",
+  storageBucket: "acadify-5ab24.appspot.com",
+  messagingSenderId: "235339619489",
+  appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+  measurementId: "G-X2SZQE18KK"
+};
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function toggleMenu() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+        }
+
+        function openModal() {
+            document.getElementById('myModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('myModal').style.display = 'none';
+        }
+
+        function addProfessor() {
+            const professorName = document.getElementById("professorName").value;
+            const professorSubject = document.getElementById("professorSubject").value;
+            const professorSchedule = document.getElementById("professorSchedule").value;
+            const professorInitial = professorName.charAt(0).toUpperCase();
+
+            if (professorName && professorSubject && professorSchedule) {
+                const professorData = {
+                    nome: professorName,
+                    materia: professorSubject,
+                    horario: professorSchedule,
+                    initial: professorInitial
+                };
+
+                // Adicionando o professor à coleção do Firestore
+                db.collection("professores").add(professorData)
+                    .then((docRef) => {
+                        console.log("Professor adicionado com ID: ", docRef.id);
+                        displayProfessor(professorData); // Atualiza a exibição do professor
+                        closeModal();
+                        clearModalFields(); // Limpa os campos do modal
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao adicionar professor: ", error);
+                    });
+            } else {
+                alert("Por favor, preencha todos os campos.");
+            }
+        }
+
+        function displayProfessor(professor) {
+            const professorContainer = document.createElement('div');
+            professorContainer.classList.add('professor-container');
+
+            const professorCircle = document.createElement('div');
+            professorCircle.classList.add('professor-circle');
+            professorCircle.innerText = professor.nome.charAt(0).toUpperCase();
+
+            const professorContent = document.createElement('div');
+            professorContent.classList.add('professor-content');
+
+            const nameDiv = document.createElement('div');
+            nameDiv.classList.add('professor-name');
+            nameDiv.innerText = professor.nome;
+
+            const subjectDiv = document.createElement('div');
+            subjectDiv.classList.add('professor-subject');
+            subjectDiv.innerText = professor.materia || "Matéria não especificada";
+
+            const scheduleDiv = document.createElement('div');
+            scheduleDiv.classList.add('professor-schedule');
+            scheduleDiv.innerText = professor.horario || "Horário não especificado";
+
+            professorContent.appendChild(nameDiv);
+            professorContent.appendChild(subjectDiv);
+            professorContent.appendChild(scheduleDiv);
+            professorContainer.appendChild(professorCircle);
+            professorContainer.appendChild(professorContent);
+
+            const contentDiv = document.querySelector('.content');
+            contentDiv.appendChild(professorContainer);
+        }
+
+        function loadProfessors() {
+            db.collection("professores").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const professorData = doc.data();
+                    displayProfessor(professorData);
+                });
+            }).catch((error) => {
+                console.error("Erro ao buscar documentos: ", error);
+            });
+        }
+
+        function clearModalFields() {
+            document.getElementById("professorName").value = "";
+            document.getElementById("professorSubject").value = "";
+            document.getElementById("professorSchedule").value = "";
+        }
+
+        function resetProfessors() {
+            db.collection("professores").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    db.collection("professores").doc(doc.id).delete().then(() => {
+                        console.log("Professor deletado: ", doc.id);
+                    }).catch((error) => {
+                        console.error("Erro ao deletar professor: ", error);
+                    });
+                });
+            });
+
+            document.querySelector('.content').innerHTML = '<div class="professor-list-title">Lista de Professores</div>';
+        }
+
+        // Carrega os professores ao carregar a página
+        window.onload = loadProfessors;
+
+        // Registro do Service Worker (se necessário)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }).catch(error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

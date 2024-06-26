@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadeiras</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        @media only screen and (max-width: 600px) {
+        .container {
+          max-width: 100%;
+          margin: 0;
+          padding-top: 40px;
+          height: 100vh;
+        }
+      }
+
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: white;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            background-color: rgba(63, 105, 224, 0.7);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        .sidebar h1 {
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #3F69E0;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: margin-left 0.3s ease;
+            margin-left: 250px;
+            
+        }
+        .note-container {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            margin: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+        .note-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .note-title {
+            font-size: 18px;
+            color: black;
+            cursor: pointer;
+        }
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color:rgba(63, 105, 224, 0.3);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1;
+        }
+
+        #algoritmia {
+            background-color: rgba(244, 164, 96, 0.3);
+        }
+
+        #Javascript {
+            background-color:rgba(255, 127, 127, 0.3);
+        }
+
+        #Marketing {
+            background-color: rgba(251, 72, 244, 0.3);
+        }
+
+        #design {
+            background-color: rgba(63, 105, 224, 0.3);
+        }
+
+        #html {
+            background-color:  rgba(162, 146, 216, 0.3);
+        }
+
+        .note-container::after {
+            content: "...";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
+            color: black;
+            font-size: 24px;
+        }
+
+        .add-icon {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: #3F69E0;
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .reset-button {
+            position: absolute;
+            bottom: 70px;
+            right: 10px;
+            background-color: #3F69E0;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+
+        /* Estilos para o modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            max-width: 400px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 10px;
+        }
+
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal-content button {
+            background-color: #3F69E0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .modal-content button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="sidebar">
+        <h1>Cadeiras</h1>
+        <a href="inicial.html">Hoje</a>
+        <a href="calendario.html">Calendário</a>
+        <a href="horario.html">Horário</a>
+        <a href="notas.html">Notas</a>
+        <a href="cadeiras.html" class="active">Cadeiras</a>
+        <a href="professores.html">Professores</a>
+        <a href="definicoes.html">Definições</a>
+        <a href="">Definições Admin</a>
+        <a href="bemvindo.html">Sair</a>
+    </div>
+
+    <div class="content" id="content">
+        <div class="note-container" id="algoritmia">
+            <div class="note-content">
+                <div class="note-title" onclick="editTitle(this)" data-docid="materialId1">Algoritmia</div>
+            </div>
+        </div>
+        <div class="note-container" id="Javascript">
+            <div class="note-content">
+                <div class="note-title" onclick="editTitle(this)" data-docid="materialId2">Javascript</div>
+            </div>
+        </div>
+        <div class="note-container" id="Marketing">
+            <div class="note-content">
+                <div class="note-title" onclick="editTitle(this)" data-docid="materialId3">Marketing</div>
+            </div>
+        </div>
+        <div class="note-container" id="design">
+            <div class="note-content">
+                <div class="note-title" onclick="editTitle(this)" data-docid="materialId4">Design de Aplicações</div>
+            </div>
+        </div>
+        <div class="note-container" id="html">
+            <div class="note-content">
+                <div class="note-title" onclick="editTitle(this)" data-docid="materialId5">HTML</div>
+            </div>
+        </div>
+    </div>
+    <div class="add-icon" onclick="openModal()">+</div>
+    <button class="reset-button" onclick="resetNotes()">Resetar matérias</button>
+
+    <!-- Modal para adicionar nova matéria -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3> <img class="pen-icon" src="img/pen.png" alt="Foto"> Adicionar Matéria</h3>
+            <input type="text" id="newCadeiraName" placeholder="Digite o nome da nova matéria">
+            <h3>Adicionar Professor</h3>
+            <input type="text" id="newProfessorName" placeholder="Digite o nome do novo professor">
+            <button onclick="addNewCadeira('professor')">Adicionar</button>
+        </div>
+    </div>
+
+    <script src="basededados.js"></script>
+    <script>
+       // Configuração do Firebase
+        const firebaseConfig = {
+  apiKey: "AIzaSyDKs2phFs0u26NYRGi1TKnhvAJsJ7yE4HY",
+  authDomain: "acadify-5ab24.firebaseapp.com",
+  projectId: "acadify-5ab24",
+  storageBucket: "acadify-5ab24.appspot.com",
+  messagingSenderId: "235339619489",
+  appId: "1:235339619489:web:da715c79da31cd21b3e4e0",
+  measurementId: "G-X2SZQE18KK"
+};
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Função para adicionar nova cadeira usando o modal
+        function addNewCadeira() {
+            const newCadeiraName = document.getElementById('newCadeiraName').value.trim();
+            if (newCadeiraName) {
+                const userId1 = "seu-id-de-usuario"; 
+
+                // Adiciona ao Firestore
+                db.collection("materias").add({
+                    nome: newCadeiraName,
+                    userId1: userId1
+                }).then((docRef) => {
+                    console.log("Matéria adicionada com sucesso!", docRef.id);
+                    // Atualiza a interface
+                    const newCadeira = document.createElement('div');
+                    newCadeira.classList.add('note-container');
+                    newCadeira.style.backgroundColor = 'rgba(244, 164, 96, 0.3)';
+                    newCadeira.innerHTML = `
+                        <div class="note-content">
+                            <div class="note-title" onclick="editTitle(this)" data-docid="${docRef.id}">${newCadeiraName}</div>
+                        </div>
+                    `;
+                    document.getElementById('content').appendChild(newCadeira);
+                    closeModal(); // Fecha o modal após adicionar a matéria
+                }).catch((error) => {
+                    console.error("Erro ao adicionar matéria: ", error);
+                });
+            } else {
+                alert("Por favor, digite o nome da nova matéria.");
+            }
+        }
+
+        // Função para editar o nome da cadeira
+        function editTitle(element) {
+            const newTitle = prompt('Editar nome da cadeira:', element.innerText);
+            if (newTitle) {
+                const docId = element.getAttribute('data-docid');
+                db.collection("materias").doc(docId).update({
+                    nome: newTitle
+                }).then(() => {
+                    console.log("Nome da matéria atualizado com sucesso!");
+                    element.innerText = newTitle;
+                }).catch((error) => {
+                    console.error("Erro ao atualizar nome da matéria: ", error);
+                });
+            }
+        }
+
+        // Função para alternar o menu lateral
+        function toggleMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+            document.querySelector('.content').style.marginLeft = sidebar.classList.contains('collapsed') ? '0' : '250px';
+        }
+
+        // Função para abrir o modal
+        function openModal() {
+            const modal = document.getElementById('modal');
+            modal.style.display = 'block';
+        }
+
+        // Função para fechar o modal
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.style.display = 'none';
+        }
+
+        // Função para resetar as notas (ou matérias)
+    function resetNotes() {
+    
+    const contentElement = document.getElementById('content');
+    contentElement.innerHTML = ''; 
+}
+
+        // Listener para carregar o serviço de worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+            });
+        }
+
+    </script>
+
+</body>
+</html>

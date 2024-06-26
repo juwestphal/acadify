@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Organizador Acadêmico</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+      @media only screen and (max-width: 600px) {
+        .container {
+          max-width: 100%;
+          margin: 0;
+          padding-top: 40px;
+          height: 100vh;
+        }
+      }
+ </style>
+</head>
+<body>
+    <div class="container">
+        <img src="img/logo icon.png" alt="Logo" class="logo">
+        <br><br>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">E-mail:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" id="login-button">Iniciar Sessão</button>
+            <p>Não tem uma conta? <a href="registra.html">Registrar</a></p>
+        </form>
+    </div>
+       <script src="basededados.js" type="module"></script>
+    <script>
+        document.getElementById("login-form").addEventListener("submit", function(event) {
+            event.preventDefault(); 
+            
+            window.location.href = "inicial.html";
+        });
+
+          if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+    }, error => {
+      console.log('ServiceWorker registration failed: ', error);
+    });
+  });
+    }
+        
+    </script>
+</body>
+</html>
